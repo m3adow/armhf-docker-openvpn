@@ -1,9 +1,9 @@
 # Original credit: https://github.com/jpetazzo/dockvpn
 
 # Leaner build then Ubuntu
-FROM alpine:3.2
+FROM container4armhf/armhf-alpine
 
-MAINTAINER Kyle Manna <kyle@kylemanna.com>
+MAINTAINER Till Wiese <mail-github.com@till-wiese.de>
 
 RUN echo "http://dl-4.alpinelinux.org/alpine/edge/community/" >> /etc/apk/repositories && \
     apk add --update openvpn iptables bash easy-rsa && \
