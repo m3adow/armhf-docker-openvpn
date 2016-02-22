@@ -1,10 +1,11 @@
-# OpenVPN for Docker
+# ARM version of kylemanna/openvpn
 
-[![Build Status](https://travis-ci.org/kylemanna/docker-openvpn.svg)](https://travis-ci.org/kylemanna/docker-openvpn)
-[![Docker Stars](https://img.shields.io/docker/stars/kylemanna/openvpn.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/kylemanna/openvpn.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
-[![ImageLayers Size](https://img.shields.io/imagelayers/image-size/kylemanna/openvpn/latest.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
-[![ImageLayers Layers](https://img.shields.io/imagelayers/layers/kylemanna/openvpn/latest.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
+Only the base images has been changed.
+
+*Original README following*
+---
+
+# OpenVPN for Docker
 
 OpenVPN server in a Docker container complete with an EasyRSA PKI CA.
 
