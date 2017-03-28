@@ -1,6 +1,6 @@
 # ARM version of kylemanna/openvpn
 
-Only the base images has been changed.
+Only the base image has been changed.
 
 *Original README following*
 
@@ -18,42 +18,53 @@ a corresponding [Digital Ocean Community Tutorial](http://bit.ly/1AGUZkq).
 * Docker Registry @ [kylemanna/openvpn](https://hub.docker.com/r/kylemanna/openvpn/)
 * GitHub @ [kylemanna/docker-openvpn](https://github.com/kylemanna/docker-openvpn)
 
-#### Example Service
-
-* [backroad.io](http://beta.backroad.io?utm_source=kylemanna/openvpn&utm_medium=readme&utm_campaign=20150621) - powered by *kylemanna/openvpn*
-
 ## Quick Start
 
-* Create the `$OVPN_DATA` volume container, i.e. `OVPN_DATA="ovpn-data"`
+* Pick a name for the `$OVPN_DATA` data volume container, it will be created automatically.
 
-        docker run --name $OVPN_DATA -v /etc/openvpn busybox
+        OVPN_DATA="ovpn-data"
 
 * Initialize the `$OVPN_DATA` container that will hold the configuration files and certificates
 
-        docker run --volumes-from $OVPN_DATA --rm kylemanna/openvpn ovpn_genconfig -u udp://VPN.SERVERNAME.COM
-        docker run --volumes-from $OVPN_DATA --rm -it kylemanna/openvpn ovpn_initpki
+        docker volume create --name $OVPN_DATA
+        docker run -v $OVPN_DATA:/etc/openvpn --rm kylemanna/openvpn ovpn_genconfig -u udp://VPN.SERVERNAME.COM
+        docker run -v $OVPN_DATA:/etc/openvpn --rm -it kylemanna/openvpn ovpn_initpki
 
 * Start OpenVPN server process
 
-    - On Docker [version 1.2](http://blog.docker.com/2014/08/announcing-docker-1-2-0/) and newer
-
-            docker run --volumes-from $OVPN_DATA -d -p 1194:1194/udp --cap-add=NET_ADMIN kylemanna/openvpn
-
-    - On Docker older than version 1.2
-
-            docker run --volumes-from $OVPN_DATA -d -p 1194:1194/udp --privileged kylemanna/openvpn
+        docker run -v $OVPN_DATA:/etc/openvpn -d -p 1194:1194/udp --cap-add=NET_ADMIN kylemanna/openvpn
 
 * Generate a client certificate without a passphrase
 
-        docker run --volumes-from $OVPN_DATA --rm -it kylemanna/openvpn easyrsa build-client-full CLIENTNAME nopass
+        docker run -v $OVPN_DATA:/etc/openvpn --rm -it kylemanna/openvpn easyrsa build-client-full CLIENTNAME nopass
 
 * Retrieve the client configuration with embedded certificates
 
-        docker run --volumes-from $OVPN_DATA --rm kylemanna/openvpn ovpn_getclient CLIENTNAME > CLIENTNAME.ovpn
+        docker run -v $OVPN_DATA:/etc/openvpn --rm kylemanna/openvpn ovpn_getclient CLIENTNAME > CLIENTNAME.ovpn
+
+## Docker Compose
+
+If you prefer to use `docker-compose` please refer to the [documentation](docs/docker-compose.md).
+
+## Debugging Tips
 
 * Create an environment variable with the name DEBUG and value of 1 to enable debug output (using "docker -e").
 
-        docker run --volumes-from $OVPN_DATA -d -p 1194:1194/udp --privileged -e DEBUG=1 kylemanna/openvpn
+        docker run -v $OVPN_DATA:/etc/openvpn -p 1194:1194/udp --privileged -e DEBUG=1 kylemanna/openvpn
+
+* Test using a client that has openvpn installed correctly
+
+        $ openvpn --config CLIENTNAME.ovpn
+
+* Run through a barrage of debugging checks on the client if things don't just work
+
+        $ ping 8.8.8.8    # checks connectivity without touching name resolution
+        $ dig google.com  # won't use the search directives in resolv.conf
+        $ nslookup google.com # will use search
+
+* Consider setting up a [systemd service](/docs/systemd.md) for automatic
+  start-up at boot time and restart in the event the OpenVPN daemon or Docker
+  crashes.
 
 ## How Does It Work?
 
@@ -70,17 +81,18 @@ The OpenVPN server is started with the default run cmd of `ovpn_run`
 
 The configuration is located in `/etc/openvpn`, and the Dockerfile
 declares that directory as a volume. It means that you can start another
-container with the `--volumes-from` flag, and access the configuration.
+container with the `-v` argument, and access the configuration.
 The volume also holds the PKI keys and certs so that it could be backed up.
 
 To generate a client certificate, `kylemanna/openvpn` uses EasyRSA via the
 `easyrsa` command in the container's path.  The `EASYRSA_*` environmental
-variables place the PKI CA under `/etc/opevpn/pki`.
+variables place the PKI CA under `/etc/openvpn/pki`.
 
 Conveniently, `kylemanna/openvpn` comes with a script called `ovpn_getclient`,
 which dumps an inline OpenVPN client configuration file.  This single file can
 then be given to a client for access to the VPN.
 
+To enable Two Factor Authentication for clients (a.k.a. OTP) see [this document](/docs/otp.md).
 
 ## OpenVPN Details
 
@@ -142,11 +154,11 @@ OpenVPN with latest OpenSSL on Ubuntu 12.04 LTS).
 ### It Doesn't Stomp All Over the Server's Filesystem
 
 Everything for the Docker container is contained in two images: the ephemeral
-run time image (kylemanna/openvpn) and the data image (using busybox as a
-base).  To remove it, remove the two Docker images and corresponding containers
-and it's all gone.  This also makes it easier to run multiple servers since
-each lives in the bubble of the container (of course multiple IPs or separate
-ports are needed to communicate with the world).
+run time image (kylemanna/openvpn) and the `$OVPN_DATA` data volume. To remove
+it, remove the corresponding containers, `$OVPN_DATA` data volume and Docker
+image and it's completely removed.  This also makes it easier to run multiple
+servers since each lives in the bubble of the container (of course multiple IPs
+or separate ports are needed to communicate with the world).
 
 ### Some (arguable) Security Benefits
 
@@ -164,7 +176,7 @@ of a guarantee in the future.
   volume for re-use across containers
 * Addition of tls-auth for HMAC security
 
-## Tested On
+## Originally Tested On
 
 * Docker hosts:
   * server a [Digital Ocean](https://www.digitalocean.com/?refcode=d19f7fe88c94) Droplet with 512 MB RAM running Ubuntu 14.04
@@ -173,8 +185,3 @@ of a guarantee in the future.
      * OpenVPN core 3.0 android armv7a thumb2 32-bit
   * OS X Mavericks with Tunnelblick 3.4beta26 (build 3828) using openvpn-2.3.4
   * ArchLinux OpenVPN pkg 2.3.4-1
-  * 
-
-## Having permissions issues with Selinux enabled?
-
-See [this](docs/selinux.md)
